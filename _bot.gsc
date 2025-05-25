@@ -260,8 +260,11 @@ init()
 	level thread onUAVAxisUpdate();
 	level thread chopperWatch();
 	
-	level thread onPlayerConnect();
-	level thread handleBots();
+        level thread onPlayerConnect();
+        level thread handleBots();
+
+        // watch for manual restart request
+        level thread watchRestartDvar();
 }
 
 /*
@@ -1241,9 +1244,39 @@ onWeaponFired()
 */
 doFiringThread()
 {
-	self endon( "disconnect" );
-	self endon( "weapon_fired" );
-	self.bots_firing = true;
-	wait 1;
-	self.bots_firing = false;
+        self endon( "disconnect" );
+        self endon( "weapon_fired" );
+        self.bots_firing = true;
+        wait 1;
+        self.bots_firing = false;
+}
+
+/*
+        Restarts Bot Warfare when the dvar "bots_restart" is set.
+*/
+bots_init_restart()
+{
+        level notify( "bots_watch_restart" );
+        wait 0.05;
+        init();
+}
+
+/*
+        Watches for a restart request via the "bots_restart" dvar.
+*/
+watchRestartDvar()
+{
+        level endon( "bots_watch_restart" );
+
+        for ( ;; )
+        {
+                if ( getdvarint( "bots_restart" ) )
+                {
+                        setdvar( "bots_restart", 0 );
+                        level thread bots_init_restart();
+                        return;
+                }
+
+                wait 0.5;
+        }
 }
